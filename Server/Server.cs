@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,6 +13,7 @@ namespace Server
     {
         static void Main(string[] args)
         {
+            List<NacinKomunikacije> komunikacijaLista = new List<NacinKomunikacije>();
             Repo repo = new Repo();
             Socket serverSocket;
             IPEndPoint serverEP = new IPEndPoint(IPAddress.Any, 65000);
@@ -50,18 +52,34 @@ namespace Server
 
                 byte[] bafer1 = new byte[100];
                 int brBajta1 = acceptedSocket.Receive(bafer1);
-                string poruka1 = Encoding.UTF8.GetString(bafer1);
-                Console.WriteLine(poruka1);
+                string poruka1 = Encoding.UTF8.GetString(bafer1, 0, brBajta1);
+                //Console.WriteLine(poruka1);
+                string algoritam = repo.PronadjiAlgoritam(poruka1);
 
-                byte[] bafer2 = new byte[8];
+                byte[] bafer2;
+                byte[] bafer3;
+                if (algoritam == "des")
+                {
+                    bafer2 = new byte[8];
+                    bafer3 = new byte[8];
+                }
+                else
+                {
+                    bafer2 = new byte[16];
+                    bafer3 = new byte[16];
+                }
+
                 int brBajta2 = acceptedSocket.Receive(bafer2);
-                string poruka2 = Encoding.UTF8.GetString(bafer2);
-                Console.WriteLine(poruka2);
+                string poruka2 = Encoding.UTF8.GetString(bafer2, 0, brBajta2);
+                //Console.WriteLine(poruka2);
 
-                byte[] bafer3 = new byte[8];
                 int brBajta3 = acceptedSocket.Receive(bafer3);
-                string poruka3 = Encoding.UTF8.GetString(bafer3);
-                Console.WriteLine(poruka3);
+                string poruka3 = Encoding.UTF8.GetString(bafer3, 0, brBajta3);
+                //Console.WriteLine(poruka3);
+
+                NacinKomunikacije komunikacijaSaKlijentom = new NacinKomunikacije(clientEP, algoritam, poruka2, poruka3);
+                komunikacijaLista.Add(komunikacijaSaKlijentom);
+                Console.WriteLine(komunikacijaSaKlijentom.ToString());
 
                 byte[] buffer = new byte[1024];
                 while (true)
@@ -74,7 +92,7 @@ namespace Server
                             Console.WriteLine("Klijent je zavrsio sa radom");
                             break;
                         }
-                        string poruka = Encoding.UTF8.GetString(buffer);
+                        string poruka = Encoding.UTF8.GetString(buffer, 0, brBajta);
                         if (poruka == "kraj")
                             break;
                         Console.WriteLine(poruka);
@@ -110,17 +128,22 @@ namespace Server
                 byte[] bafer1 = new byte[1024];
                 int brBajta1 = serverSocket.ReceiveFrom(bafer1, ref posiljaocEP1);
                 string poruka1 = Encoding.UTF8.GetString(bafer1, 0, brBajta1);
-                Console.WriteLine(poruka1);
+                //Console.WriteLine(poruka1);
+                string algoritam = repo.PronadjiAlgoritam(poruka1);
 
                 byte[] bafer2 = new byte[100];
                 int brBajta2 = serverSocket.ReceiveFrom(bafer2, ref posiljaocEP2);
                 string poruka2 = Encoding.UTF8.GetString(bafer2, 0, brBajta2);
-                Console.WriteLine(poruka2);
+                //Console.WriteLine(poruka2);
 
                 byte[] bafer3 = new byte[100];
                 int brBajta3 = serverSocket.ReceiveFrom(bafer3, ref posiljaocEP3);
                 string poruka3 = Encoding.UTF8.GetString(bafer3, 0, brBajta3);
-                Console.WriteLine(poruka3);
+                //Console.WriteLine(poruka3);
+
+                NacinKomunikacije komunikacijaSaKlijentom = new NacinKomunikacije(posiljaocEP, algoritam, poruka2, poruka3);
+                komunikacijaLista.Add(komunikacijaSaKlijentom);
+                Console.WriteLine(komunikacijaSaKlijentom.ToString());
 
                 byte[] buffer = new byte[1024];
                 while (true)
