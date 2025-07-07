@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Server
 {
@@ -36,6 +31,7 @@ namespace Server
                 return;
             }
             serverSocket.Bind(serverEP);
+            serverSocket.Blocking = false;
 
             if (protokol?.ToLower() == "tcp")
             {
@@ -92,15 +88,42 @@ namespace Server
                             Console.WriteLine("Klijent je zavrsio sa radom");
                             break;
                         }
-                        string poruka = Encoding.UTF8.GetString(buffer, 0, brBajta);
+                        string sifrovanaPoruka = Encoding.UTF8.GetString(buffer, 0, brBajta);
+                        string poruka = "";
+
+                        if (algoritam == "des")
+                        {
+                            Crypto.DES des = new Crypto.DES(poruka2, poruka3);
+                            poruka = des.Decrypt(sifrovanaPoruka);
+                        }
+                        else
+                        {
+                            Crypto.AES aes = new Crypto.AES(poruka2, poruka3);
+                            poruka = aes.Decrypt(sifrovanaPoruka);
+                        }
+
+                        Console.WriteLine("Primljena (sifrovana) poruka: " + sifrovanaPoruka);
+                        Console.WriteLine("Desifrovana poruka: " + poruka);
+
                         if (poruka == "kraj")
                             break;
-                        Console.WriteLine(poruka);
 
                         Console.WriteLine("Unesite poruku");
                         string odgovor = Console.ReadLine();
 
-                        brBajta = acceptedSocket.Send(Encoding.UTF8.GetBytes(odgovor));
+                        string sifrovaniOdgovor = "";
+                        if (algoritam == "des")
+                        {
+                            Crypto.DES des = new Crypto.DES(poruka2, poruka3);
+                            sifrovaniOdgovor = des.Encrypt(odgovor);
+                        }
+                        else
+                        {
+                            Crypto.AES aes = new Crypto.AES(poruka2, poruka3);
+                            sifrovaniOdgovor = aes.Encrypt(odgovor);
+                        }
+
+                        brBajta = acceptedSocket.Send(Encoding.UTF8.GetBytes(sifrovaniOdgovor));
                         if (odgovor == "kraj")
                             break;
                     }
@@ -121,53 +144,127 @@ namespace Server
             {
 
                 EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
-                EndPoint posiljaocEP1 = new IPEndPoint(IPAddress.Any, 0);
-                EndPoint posiljaocEP2 = new IPEndPoint(IPAddress.Any, 0);
-                EndPoint posiljaocEP3 = new IPEndPoint(IPAddress.Any, 0);
-
-                byte[] bafer1 = new byte[1024];
-                int brBajta1 = serverSocket.ReceiveFrom(bafer1, ref posiljaocEP1);
-                string poruka1 = Encoding.UTF8.GetString(bafer1, 0, brBajta1);
-                //Console.WriteLine(poruka1);
-                string algoritam = repo.PronadjiAlgoritam(poruka1);
-
-                byte[] bafer2 = new byte[100];
-                int brBajta2 = serverSocket.ReceiveFrom(bafer2, ref posiljaocEP2);
-                string poruka2 = Encoding.UTF8.GetString(bafer2, 0, brBajta2);
-                //Console.WriteLine(poruka2);
-
-                byte[] bafer3 = new byte[100];
-                int brBajta3 = serverSocket.ReceiveFrom(bafer3, ref posiljaocEP3);
-                string poruka3 = Encoding.UTF8.GetString(bafer3, 0, brBajta3);
-                //Console.WriteLine(poruka3);
-
-                NacinKomunikacije komunikacijaSaKlijentom = new NacinKomunikacije(posiljaocEP, algoritam, poruka2, poruka3);
-                komunikacijaLista.Add(komunikacijaSaKlijentom);
-                Console.WriteLine(komunikacijaSaKlijentom.ToString());
-
-                byte[] buffer = new byte[1024];
                 while (true)
                 {
                     try
                     {
-                        int brBajta = serverSocket.ReceiveFrom(buffer, ref posiljaocEP);
-                        if (brBajta == 0)
+                        List<Socket> checkRead = new List<Socket> { serverSocket };
+                        List<Socket> checkError = new List<Socket> { serverSocket };
+                        Socket.Select(checkRead, null, checkError, 1000);
+
+                        if (checkRead.Count > 0)
                         {
-                            Console.WriteLine("Klijent je zavrsio sa radom");
-                            break;
+                            //Console.WriteLine($"Desilo se {checkRead.Count} dogadjaja\n");
+                            foreach (Socket s in checkRead)
+                            {
+                                byte[] buffer = new byte[1024];
+                                int brBajta = 0;
+                                try
+                                {
+                                    if (s.Poll(1000000, SelectMode.SelectRead)) // Proverava da li je dostupno za čitanje
+                                    {
+                                        brBajta = s.ReceiveFrom(buffer, ref posiljaocEP);
+                                        if (brBajta == 0)
+                                        {
+                                            Console.WriteLine("Klijent je zavrsio sa radom");
+                                            break;
+                                        }
+
+                                        // provera da li klijent vec postoji
+                                        var komunikacija = komunikacijaLista.Find(k => k.UticnicaAdresaKlijenta.Equals(posiljaocEP));
+                                        // ako ne postoji, onda dodajemo u listu
+                                        if (komunikacija == null)
+                                        {
+                                            string poruka1 = Encoding.UTF8.GetString(buffer, 0, brBajta);
+                                            string algoritam = repo.PronadjiAlgoritam(poruka1);
+                                            string poruka2 = "", poruka3 = "";
+
+                                            // Čeka se druga poruka (ključ)
+                                            if (s.Poll(1000, SelectMode.SelectRead))
+                                            {
+                                                posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
+                                                brBajta = s.ReceiveFrom(buffer, ref posiljaocEP);
+                                                poruka2 = Encoding.UTF8.GetString(buffer, 0, brBajta);
+                                                Console.WriteLine($"Primljena druga poruka (ključ): {poruka2}");
+
+                                                // Čeka se treća poruka (IV)
+                                                if (s.Poll(1000, SelectMode.SelectRead))
+                                                {
+                                                    posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
+                                                    brBajta = s.ReceiveFrom(buffer, ref posiljaocEP);
+                                                    poruka3 = Encoding.UTF8.GetString(buffer, 0, brBajta);
+                                                    Console.WriteLine($"Primljena treća poruka (IV): {poruka3}");
+
+                                                    // Kreiranje objekta NacinKomunikacije nakon što su primljene sve tri poruke
+                                                    komunikacija = new NacinKomunikacije(posiljaocEP, algoritam, poruka2, poruka3);
+                                                    komunikacijaLista.Add(komunikacija);
+                                                    Console.WriteLine(komunikacija.ToString());
+                                                }
+                                            }
+                                        }
+                                        else // klijent vec postoji
+                                        {
+                                            string sifrovanaPoruka = Encoding.UTF8.GetString(buffer, 0, brBajta);
+                                            string poruka = "";
+
+                                            if (komunikacija.Algoritam == "des")
+                                            {
+                                                Crypto.DES des = new Crypto.DES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                poruka = des.Decrypt(sifrovanaPoruka);
+                                            }
+                                            else
+                                            {
+                                                Crypto.AES aes = new Crypto.AES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                poruka = aes.Decrypt(sifrovanaPoruka);
+                                            }
+                                            Console.WriteLine("Primljena (sifrovana) poruka: " + sifrovanaPoruka);
+                                            Console.WriteLine("Desifrovana poruka: " + poruka);
+                                            if (poruka == "kraj")
+                                                break;
+
+                                            Console.WriteLine("Unesite poruku");
+                                            string odgovor = Console.ReadLine();
+
+                                            string sifrovaniOdgovor = "";
+                                            if (komunikacija.Algoritam == "des")
+                                            {
+                                                Crypto.DES des = new Crypto.DES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                sifrovaniOdgovor = des.Encrypt(odgovor);
+                                            }
+                                            else
+                                            {
+                                                Crypto.AES aes = new Crypto.AES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                sifrovaniOdgovor = aes.Encrypt(odgovor);
+                                            }
+
+                                            brBajta = s.SendTo(Encoding.UTF8.GetBytes(sifrovaniOdgovor), posiljaocEP);
+                                            if (odgovor == "kraj")
+                                                break;
+                                        }
+                                    }
+                                }
+                                catch (SocketException ex)
+                                {
+                                    Console.WriteLine($"Greška sa soketom: {ex.Message}");
+                                    break;
+                                }
+                            }
                         }
-                        string poruka = Encoding.UTF8.GetString(buffer, 0, brBajta);
+                        if (checkError.Count > 0)
+                        {
+                            Console.WriteLine($"Desilo se {checkError.Count} gresaka\n");
 
-                        if (poruka == "kraj")
-                            break;
-                        Console.WriteLine(poruka);
+                            foreach (Socket s in checkError)
+                            {
+                                Console.WriteLine($"Greska na socketu: {s.LocalEndPoint}");
 
-                        Console.WriteLine("Unesite poruku");
-                        string odgovor = Console.ReadLine();
+                                Console.WriteLine("Zatvaram socket zbog greske...");
+                                s.Close();
 
-                        brBajta = serverSocket.SendTo(Encoding.UTF8.GetBytes(odgovor), posiljaocEP);
-                        if (odgovor == "kraj")
-                            break;
+                            }
+                        }
+                        checkError.Clear();
+                        checkRead.Clear();
                     }
                     catch (SocketException ex)
                     {
