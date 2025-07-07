@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Server.Crypto;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -93,12 +94,12 @@ namespace Server
 
                         if (algoritam == "des")
                         {
-                            Crypto.DES des = new Crypto.DES(poruka2, poruka3);
+                            DES des = new DES(poruka2, poruka3);
                             poruka = des.Decrypt(sifrovanaPoruka);
                         }
                         else
                         {
-                            Crypto.AES aes = new Crypto.AES(poruka2, poruka3);
+                            AES aes = new AES(poruka2, poruka3);
                             poruka = aes.Decrypt(sifrovanaPoruka);
                         }
 
@@ -114,12 +115,12 @@ namespace Server
                         string sifrovaniOdgovor = "";
                         if (algoritam == "des")
                         {
-                            Crypto.DES des = new Crypto.DES(poruka2, poruka3);
+                            DES des = new DES(poruka2, poruka3);
                             sifrovaniOdgovor = des.Encrypt(odgovor);
                         }
                         else
                         {
-                            Crypto.AES aes = new Crypto.AES(poruka2, poruka3);
+                            AES aes = new AES(poruka2, poruka3);
                             sifrovaniOdgovor = aes.Encrypt(odgovor);
                         }
 
@@ -209,12 +210,12 @@ namespace Server
 
                                             if (komunikacija.Algoritam == "des")
                                             {
-                                                Crypto.DES des = new Crypto.DES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                DES des = new DES(komunikacija.Kljuc, komunikacija.Dodatno);
                                                 poruka = des.Decrypt(sifrovanaPoruka);
                                             }
                                             else
                                             {
-                                                Crypto.AES aes = new Crypto.AES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                AES aes = new AES(komunikacija.Kljuc, komunikacija.Dodatno);
                                                 poruka = aes.Decrypt(sifrovanaPoruka);
                                             }
                                             Console.WriteLine("Primljena (sifrovana) poruka: " + sifrovanaPoruka);
@@ -228,18 +229,26 @@ namespace Server
                                             string sifrovaniOdgovor = "";
                                             if (komunikacija.Algoritam == "des")
                                             {
-                                                Crypto.DES des = new Crypto.DES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                DES des = new DES(komunikacija.Kljuc, komunikacija.Dodatno);
                                                 sifrovaniOdgovor = des.Encrypt(odgovor);
                                             }
                                             else
                                             {
-                                                Crypto.AES aes = new Crypto.AES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                AES aes = new AES(komunikacija.Kljuc, komunikacija.Dodatno);
                                                 sifrovaniOdgovor = aes.Encrypt(odgovor);
                                             }
 
-                                            brBajta = s.SendTo(Encoding.UTF8.GetBytes(sifrovaniOdgovor), posiljaocEP);
+                                            brBajta = s.SendTo(Encoding.UTF8.GetBytes(sifrovaniOdgovor), komunikacija.UticnicaAdresaKlijenta);
                                             if (odgovor == "kraj")
+                                            {
+                                                komunikacijaLista.Remove(komunikacija);
+                                                if (komunikacijaLista.Count == 0)
+                                                {
+                                                    Console.WriteLine("Svi klijenti su zavrsili sa radom");
+                                                    break;
+                                                }
                                                 break;
+                                            }
                                         }
                                     }
                                 }

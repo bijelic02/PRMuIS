@@ -1,4 +1,5 @@
-﻿using Client.Pomocne_metode;
+﻿using Client.Crypto;
+using Client.Pomocne_metode;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -92,13 +93,13 @@ namespace Client
                         string sifrovanaPoruka = "";
                         if (algoritam.ToLower() == "des")
                         {
-                            Crypto.DES des = new Crypto.DES(key, iv);
+                            DES des = new DES(key, iv);
                             sifrovanaPoruka = des.Encrypt(poruka);
 
                         }
                         else if (algoritam.ToLower() == "aes")
                         {
-                            Crypto.AES aes = new Crypto.AES(key, iv);
+                            AES aes = new AES(key, iv);
                             sifrovanaPoruka = aes.Encrypt(poruka);
                         }
                         Console.WriteLine("Sifrovana poruka: " + sifrovanaPoruka);
@@ -122,12 +123,12 @@ namespace Client
                         string desifrovaniOdgovor = "";
                         if (algoritam.ToLower() == "des")
                         {
-                            Crypto.DES des = new Crypto.DES(key, iv);
+                            DES des = new DES(key, iv);
                             desifrovaniOdgovor = des.Decrypt(odgovor);
                         }
                         else
                         {
-                            Crypto.AES aes = new Crypto.AES(key, iv);
+                            AES aes = new AES(key, iv);
                             desifrovaniOdgovor = aes.Decrypt(odgovor);
                         }
 
@@ -172,13 +173,13 @@ namespace Client
 
                         if (algoritam.ToLower() == "des")
                         {
-                            Crypto.DES des = new Crypto.DES(key, iv);
+                            DES des = new DES(key, iv);
                             sifrovanaPoruka = des.Encrypt(poruka);
 
                         }
                         else if (algoritam.ToLower() == "aes")
                         {
-                            Crypto.AES aes = new Crypto.AES(key, iv);
+                            AES aes = new AES(key, iv);
                             sifrovanaPoruka = aes.Encrypt(poruka);
                         }
                         Console.WriteLine("Sifrovana poruka: " + sifrovanaPoruka);
@@ -200,12 +201,12 @@ namespace Client
                         string desifrovaniOdgovor = "";
                         if (algoritam.ToLower() == "des")
                         {
-                            Crypto.DES des = new Crypto.DES(key, iv);
+                            DES des = new DES(key, iv);
                             desifrovaniOdgovor = des.Decrypt(odgovor);
                         }
                         else
                         {
-                            Crypto.AES aes = new Crypto.AES(key, iv);
+                            AES aes = new AES(key, iv);
                             desifrovaniOdgovor = aes.Decrypt(odgovor);
                         }
 
