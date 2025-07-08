@@ -1,10 +1,4 @@
-﻿using Client.Pomocne_metode;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Server.Pomocne_metode;
 
 namespace Server
 {
@@ -23,6 +17,14 @@ namespace Server
         public string PronadjiAlgoritam(string hesirano)
         {
             return data.GetValueOrDefault(hesirano);
+        }
+
+        public void Ispisi()
+        {
+            foreach (var item in data)
+            {
+                Console.WriteLine(item.Key + " " + item.Value);
+            }
         }
     }
 }

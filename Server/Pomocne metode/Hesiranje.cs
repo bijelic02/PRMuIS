@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Client.Pomocne_metode
+namespace Server.Pomocne_metode
 {
     public class Hesiranje
     {

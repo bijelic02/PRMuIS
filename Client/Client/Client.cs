@@ -1,7 +1,7 @@
-﻿using Client.Crypto;
-using Client.Pomocne_metode;
+﻿using Client.Pomocne_metode;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Client
@@ -93,13 +93,13 @@ namespace Client
                         string sifrovanaPoruka = "";
                         if (algoritam.ToLower() == "des")
                         {
-                            DES des = new DES(key, iv);
+                            Crypto.DES des = new Crypto.DES(key, iv);
                             sifrovanaPoruka = des.Encrypt(poruka);
 
                         }
                         else if (algoritam.ToLower() == "aes")
                         {
-                            AES aes = new AES(key, iv);
+                            Crypto.AES aes = new Crypto.AES(key, iv);
                             sifrovanaPoruka = aes.Encrypt(poruka);
                         }
                         Console.WriteLine("Sifrovana poruka: " + sifrovanaPoruka);
@@ -123,12 +123,12 @@ namespace Client
                         string desifrovaniOdgovor = "";
                         if (algoritam.ToLower() == "des")
                         {
-                            DES des = new DES(key, iv);
+                            Crypto.DES des = new Crypto.DES(key, iv);
                             desifrovaniOdgovor = des.Decrypt(odgovor);
                         }
                         else
                         {
-                            AES aes = new AES(key, iv);
+                            Crypto.AES aes = new Crypto.AES(key, iv);
                             desifrovaniOdgovor = aes.Decrypt(odgovor);
                         }
 
@@ -151,79 +151,85 @@ namespace Client
             }
             else
             {
-                Hesiranje hes = new Hesiranje();
-                string hesiranAlg = hes.Hesiraj(algoritam);
-                byte[] binarno1 = Encoding.UTF8.GetBytes(hesiranAlg);
-                int brBajta1 = clientSocket.Send(binarno1);
-
-                byte[] binarno2 = Encoding.UTF8.GetBytes(key);
-                int brBajta2 = clientSocket.Send(binarno2);
-
-                byte[] binarno3 = Encoding.UTF8.GetBytes(iv);
-                int brBajta3 = clientSocket.Send(binarno3);
-
-                byte[] buffer = new byte[1024];
-                while (true)
+                try
                 {
-                    Console.WriteLine("Unesite poruku");
-                    try
+                    Hesiranje hes = new Hesiranje();
+                    string hesiranAlg = hes.Hesiraj(algoritam);
+                    byte[] binarno1 = Encoding.UTF8.GetBytes(hesiranAlg);
+                    int brBajta1 = clientSocket.Send(binarno1);
+
+                    byte[] binarno2 = Encoding.UTF8.GetBytes(key);
+                    int brBajta2 = clientSocket.Send(binarno2);
+
+                    byte[] binarno3 = Encoding.UTF8.GetBytes(iv);
+                    int brBajta3 = clientSocket.Send(binarno3);
+
+                    byte[] buffer = new byte[1024];
+                    while (true)
                     {
-                        string poruka = Console.ReadLine();
-                        string sifrovanaPoruka = "";
-
-                        if (algoritam.ToLower() == "des")
+                        Console.WriteLine("Unesite poruku");
+                        try
                         {
-                            DES des = new DES(key, iv);
-                            sifrovanaPoruka = des.Encrypt(poruka);
+                            string poruka = Console.ReadLine();
+                            string sifrovanaPoruka = "";
 
+                            if (algoritam.ToLower() == "des")
+                            {
+                                Crypto.DES des = new Crypto.DES(key, iv);
+                                sifrovanaPoruka = des.Encrypt(poruka);
+
+                            }
+                            else if (algoritam.ToLower() == "aes")
+                            {
+                                Crypto.AES aes = new Crypto.AES(key, iv);
+                                sifrovanaPoruka = aes.Encrypt(poruka);
+                            }
+                            Console.WriteLine("Sifrovana poruka: " + sifrovanaPoruka);
+
+                            int brBajta = clientSocket.Send(Encoding.UTF8.GetBytes(sifrovanaPoruka));
+
+                            if (poruka == "kraj")
+                                break;
+
+                            brBajta = clientSocket.Receive(buffer);
+
+                            if (brBajta == 0)
+                            {
+                                Console.WriteLine("Server je zavrsio sa radom");
+                                break;
+                            }
+
+                            string odgovor = Encoding.UTF8.GetString(buffer, 0, brBajta);
+                            string desifrovaniOdgovor = "";
+                            if (algoritam.ToLower() == "des")
+                            {
+                                Crypto.DES des = new Crypto.DES(key, iv);
+                                desifrovaniOdgovor = des.Decrypt(odgovor);
+                            }
+                            else
+                            {
+                                Crypto.AES aes = new Crypto.AES(key, iv);
+                                desifrovaniOdgovor = aes.Decrypt(odgovor);
+                            }
+
+                            Console.WriteLine("Primljeni (sifrovani) odgovor: " + odgovor);
+                            Console.WriteLine("Desifrovani odgovor: " + desifrovaniOdgovor);
+
+                            if (desifrovaniOdgovor == "kraj")
+                                break;
                         }
-                        else if (algoritam.ToLower() == "aes")
+                        catch (SocketException ex)
                         {
-                            AES aes = new AES(key, iv);
-                            sifrovanaPoruka = aes.Encrypt(poruka);
-                        }
-                        Console.WriteLine("Sifrovana poruka: " + sifrovanaPoruka);
-
-                        int brBajta = clientSocket.Send(Encoding.UTF8.GetBytes(sifrovanaPoruka));
-
-                        if (poruka == "kraj")
+                            Console.WriteLine($"Doslo je do greske tokom slanja:\n{ex}");
                             break;
-
-                        brBajta = clientSocket.Receive(buffer);
-
-                        if (brBajta == 0)
-                        {
-                            Console.WriteLine("Server je zavrsio sa radom");
-                            break;
                         }
 
-                        string odgovor = Encoding.UTF8.GetString(buffer, 0, brBajta);
-                        string desifrovaniOdgovor = "";
-                        if (algoritam.ToLower() == "des")
-                        {
-                            DES des = new DES(key, iv);
-                            desifrovaniOdgovor = des.Decrypt(odgovor);
-                        }
-                        else
-                        {
-                            AES aes = new AES(key, iv);
-                            desifrovaniOdgovor = aes.Decrypt(odgovor);
-                        }
-
-                        Console.WriteLine("Primljeni (sifrovani) odgovor: " + odgovor);
-                        Console.WriteLine("Desifrovani odgovor: " + desifrovaniOdgovor);
-
-                        if (desifrovaniOdgovor == "kraj")
-                            break;
                     }
-                    catch (SocketException ex)
-                    {
-                        Console.WriteLine($"Doslo je do greske tokom slanja:\n{ex}");
-                        break;
-                    }
-
                 }
-
+                catch (SocketException ex)
+                {
+                    Console.WriteLine($"Doslo je do greske: \n{ex}");
+                }
                 Console.WriteLine("Klijent zavrsava sa radom");
                 clientSocket.Close(); // Zatvaramo soket na kraju rada
                 Console.ReadKey();
