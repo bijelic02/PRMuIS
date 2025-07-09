@@ -57,11 +57,6 @@ namespace Client.Crypto
                     {
                         using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
                         {
-                            /*
-                            cs.Write(cipherText, 0, cipherText.Length);
-                            cs.FlushFinalBlock();
-                            return Encoding.UTF8.GetString(ms.ToArray());
-                            */
                             using (StreamReader srDecrypt = new StreamReader(cs, Encoding.UTF8))
                             {
                                 return srDecrypt.ReadToEnd();
