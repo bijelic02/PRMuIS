@@ -20,6 +20,7 @@ namespace Server.Crypto
             {
                 aesAlg.Key = Encoding.UTF8.GetBytes(key);
                 aesAlg.IV = Encoding.UTF8.GetBytes(iv);
+                aesAlg.Padding = PaddingMode.PKCS7;
 
                 ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
 
@@ -30,9 +31,9 @@ namespace Server.Crypto
                         using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
                         {
                             swEncrypt.Write(plainText);
-                        }
-                        return Convert.ToBase64String(msEncrypt.ToArray());
+                        } 
                     }
+                    return Convert.ToBase64String(msEncrypt.ToArray());
                 }
             }
         }
@@ -43,6 +44,7 @@ namespace Server.Crypto
             {
                 aesAlg.Key = Encoding.UTF8.GetBytes(key);
                 aesAlg.IV = Encoding.UTF8.GetBytes(iv);
+                aesAlg.Padding = PaddingMode.PKCS7;
 
                 ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 

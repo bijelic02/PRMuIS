@@ -105,7 +105,7 @@ namespace Client
                         Console.WriteLine("Sifrovana poruka: " + sifrovanaPoruka);
 
                         byte[] binarnaPoruka = Encoding.UTF8.GetBytes(sifrovanaPoruka);
-                        int brBajta = clientSocket.SendTo(binarnaPoruka, 0, binarnaPoruka.Length, SocketFlags.None, destEP); // Poruka koju saljemo u binarnom zapisu, pocetak poruke, duzina, flegovi, odrediste
+                        int brBajta = clientSocket.SendTo(binarnaPoruka, 0, binarnaPoruka.Length, SocketFlags.None, destEP); 
 
                         if (poruka == "kraj")
                             break;
@@ -146,7 +146,7 @@ namespace Client
                 }
 
                 Console.WriteLine("Klijent zavrsava sa radom");
-                clientSocket.Close(); // Zatvaramo soket na kraju rada
+                clientSocket.Close();
                 Console.ReadKey();
             }
             else
@@ -231,7 +231,7 @@ namespace Client
                     Console.WriteLine($"Doslo je do greske: \n{ex}");
                 }
                 Console.WriteLine("Klijent zavrsava sa radom");
-                clientSocket.Close(); // Zatvaramo soket na kraju rada
+                clientSocket.Close();
                 Console.ReadKey();
             }
         }

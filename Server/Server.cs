@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -6,10 +7,17 @@ namespace Server
 {
     public class Server
     {
+        // TODO: popravi metodu za statistiku
+        // treba na osnovu duzine reci da se izracuna prosek vremena za des i aes
+        // moze i malo ispis da se popravi
+
         static void Main(string[] args)
         {
             List<NacinKomunikacije> komunikacijaLista = new List<NacinKomunikacije>();
             Repo repo = new Repo();
+            List<double> desVremena = new List<double>();
+            List<double> aesVremena = new List<double>();
+
             Socket serverSocket;
             IPEndPoint serverEP = new IPEndPoint(IPAddress.Any, 65000);
 
@@ -70,7 +78,6 @@ namespace Server
                         {
                             foreach (Socket s in checkRead)
                             {
-                                //IPEndPoint clientEP = new IPEndPoint(IPAddress.Any, 0);
                                 byte[] buffer = new byte[1024];
                                 int brBajta = 0;
                                 if (s == serverSocket)
@@ -127,6 +134,7 @@ namespace Server
 
                                                 string sifrovanaPoruka = Encoding.UTF8.GetString(buffer, 0, brBajta);
                                                 string poruka = "";
+
                                                 if (komunikacija.Algoritam == "des")
                                                 {
                                                     Crypto.DES des = new Crypto.DES(komunikacija.Kljuc, komunikacija.Dodatno);
@@ -139,6 +147,7 @@ namespace Server
                                                 }
                                                 Console.WriteLine("Primljena (sifrovana) poruka: " + sifrovanaPoruka);
                                                 Console.WriteLine("Desifrovana poruka: " + poruka);
+
                                                 if (poruka == "kraj")
                                                 {
                                                     klijenti.Remove(s);
@@ -146,6 +155,7 @@ namespace Server
                                                     if (komunikacijaLista.Count == 0)
                                                     {
                                                         Console.WriteLine("Svi klijenti su zavrsili sa radom");
+                                                        IspisiStatistiku(desVremena, aesVremena);
                                                         kraj = false;
                                                     }
                                                     break;
@@ -153,25 +163,34 @@ namespace Server
                                                 Console.WriteLine("Unesite poruku");
                                                 string odgovor = Console.ReadLine();
                                                 string sifrovaniOdgovor = "";
+
+                                                Stopwatch sw = new Stopwatch();
                                                 if (komunikacija.Algoritam == "des")
                                                 {
                                                     Crypto.DES des = new Crypto.DES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                    sw.Start();
                                                     sifrovaniOdgovor = des.Encrypt(odgovor);
+                                                    sw.Stop();
+                                                    desVremena.Add(sw.Elapsed.TotalMilliseconds);
                                                 }
                                                 else
                                                 {
                                                     Crypto.AES aes = new Crypto.AES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                    sw.Start();
                                                     sifrovaniOdgovor = aes.Encrypt(odgovor);
+                                                    sw.Stop();
+                                                    aesVremena.Add(sw.Elapsed.TotalMilliseconds);
                                                 }
+
                                                 brBajta = s.Send(Encoding.UTF8.GetBytes(sifrovaniOdgovor));
                                                 if (odgovor == "kraj")
                                                 {
                                                     klijenti.Remove(s);
                                                     komunikacijaLista.Remove(komunikacija);
-                                                    //s.Close();
                                                     if (komunikacijaLista.Count == 0)
                                                     {
                                                         Console.WriteLine("Server zavrsava sa radom");
+                                                        IspisiStatistiku(desVremena, aesVremena);
                                                         kraj = false;
                                                     }
                                                     break;
@@ -187,6 +206,7 @@ namespace Server
                                     }
 
                                     Console.WriteLine("Server zavrsava sa radom");
+                                    IspisiStatistiku(desVremena, aesVremena);
                                     Console.ReadKey();
                                     s.Close();
                                     serverSocket.Close();
@@ -215,6 +235,7 @@ namespace Server
                     Console.WriteLine($"Doslo je do greske {ex}");
                 }
                 Console.WriteLine("Server zavrsava sa radom");
+                IspisiStatistiku(desVremena, aesVremena);
                 Console.ReadKey();
                 serverSocket.Close();
             }
@@ -232,14 +253,13 @@ namespace Server
 
                         if (checkRead.Count > 0)
                         {
-                            //Console.WriteLine($"Desilo se {checkRead.Count} dogadjaja\n");
                             foreach (Socket s in checkRead)
                             {
                                 byte[] buffer = new byte[1024];
                                 int brBajta = 0;
                                 try
                                 {
-                                    if (s.Poll(1000000, SelectMode.SelectRead)) // Proverava da li je dostupno za čitanje
+                                    if (s.Poll(1000000, SelectMode.SelectRead)) // proverava da li je dostupno za citanje
                                     {
                                         brBajta = s.ReceiveFrom(buffer, ref posiljaocEP);
                                         if (brBajta == 0)
@@ -257,7 +277,7 @@ namespace Server
                                             string algoritam = repo.PronadjiAlgoritam(poruka1);
                                             string poruka2 = "", poruka3 = "";
 
-                                            // Čeka se druga poruka (ključ)
+                                            // ceka se druga poruka - kljuc
                                             if (s.Poll(1000, SelectMode.SelectRead))
                                             {
                                                 posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
@@ -265,7 +285,7 @@ namespace Server
                                                 poruka2 = Encoding.UTF8.GetString(buffer, 0, brBajta);
                                                 Console.WriteLine($"Primljena druga poruka (ključ): {poruka2}");
 
-                                                // Čeka se treća poruka (IV)
+                                                // ceka se treca poruka - iv
                                                 if (s.Poll(1000, SelectMode.SelectRead))
                                                 {
                                                     posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
@@ -273,7 +293,6 @@ namespace Server
                                                     poruka3 = Encoding.UTF8.GetString(buffer, 0, brBajta);
                                                     Console.WriteLine($"Primljena treća poruka (IV): {poruka3}");
 
-                                                    // Kreiranje objekta NacinKomunikacije nakon što su primljene sve tri poruke
                                                     komunikacija = new NacinKomunikacije(posiljaocEP, algoritam, poruka2, poruka3);
                                                     komunikacijaLista.Add(komunikacija);
                                                     Console.WriteLine(komunikacija.ToString());
@@ -298,21 +317,37 @@ namespace Server
                                             Console.WriteLine("Primljena (sifrovana) poruka: " + sifrovanaPoruka);
                                             Console.WriteLine("Desifrovana poruka: " + poruka);
                                             if (poruka == "kraj")
+                                            {
+                                                komunikacijaLista.Remove(komunikacija);
+                                                if (komunikacijaLista.Count == 0)
+                                                {
+                                                    Console.WriteLine("Svi klijenti su zavrsili sa radom");
+                                                    IspisiStatistiku(desVremena, aesVremena);
+                                                    break;
+                                                }
                                                 break;
+                                            }
 
                                             Console.WriteLine("Unesite poruku");
                                             string odgovor = Console.ReadLine();
-
                                             string sifrovaniOdgovor = "";
+
+                                            Stopwatch sw = new Stopwatch();
                                             if (komunikacija.Algoritam == "des")
                                             {
                                                 Crypto.DES des = new Crypto.DES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                sw.Start();
                                                 sifrovaniOdgovor = des.Encrypt(odgovor);
+                                                sw.Stop();
+                                                desVremena.Add(sw.Elapsed.TotalMilliseconds);
                                             }
                                             else
                                             {
                                                 Crypto.AES aes = new Crypto.AES(komunikacija.Kljuc, komunikacija.Dodatno);
+                                                sw.Start();
                                                 sifrovaniOdgovor = aes.Encrypt(odgovor);
+                                                sw.Stop();
+                                                aesVremena.Add(sw.Elapsed.TotalMilliseconds);
                                             }
 
                                             brBajta = s.SendTo(Encoding.UTF8.GetBytes(sifrovaniOdgovor), komunikacija.UticnicaAdresaKlijenta);
@@ -322,6 +357,7 @@ namespace Server
                                                 if (komunikacijaLista.Count == 0)
                                                 {
                                                     Console.WriteLine("Svi klijenti su zavrsili sa radom");
+                                                    IspisiStatistiku(desVremena, aesVremena);
                                                     break;
                                                 }
                                                 break;
@@ -361,9 +397,28 @@ namespace Server
                 }
 
                 Console.WriteLine("Server zavrsava sa radom");
+                IspisiStatistiku(desVremena, aesVremena);
                 Console.ReadKey();
                 serverSocket.Close();
             }
+        }
+
+        private static void IspisiStatistiku(List<double> desVremena, List<double> aesVremena)
+        {
+            double desProsek = 0;
+            double aesProsek = 0;
+            foreach (var item in desVremena)
+            {
+                desProsek += item;
+            }
+            foreach (var item in aesVremena)
+            {
+                aesProsek += item;
+            }
+            desProsek /= desVremena.Count;
+            aesProsek /= aesVremena.Count;
+            Console.WriteLine($"Prosek vremena za DES: {desProsek}");
+            Console.WriteLine($"Prosek vremena za AES: {aesProsek}");
         }
     }
 }

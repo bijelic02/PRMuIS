@@ -23,9 +23,11 @@ namespace Client.Crypto
                 des.Mode = CipherMode.CBC;
                 des.Padding = PaddingMode.PKCS7;
 
+                ICryptoTransform encryptor = des.CreateEncryptor(des.Key, des.IV);
+
                 using (MemoryStream ms = new MemoryStream())
                 {
-                    using (CryptoStream cs = new CryptoStream(ms, des.CreateEncryptor(), CryptoStreamMode.Write))
+                    using (CryptoStream cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
                     {
                         byte[] inputBytes = Encoding.UTF8.GetBytes(plainText);
                         cs.Write(inputBytes, 0, inputBytes.Length);
@@ -49,13 +51,22 @@ namespace Client.Crypto
                 des.Mode = CipherMode.CBC;
                 des.Padding = PaddingMode.PKCS7;
 
-                using (MemoryStream ms = new MemoryStream())
+                using (MemoryStream ms = new MemoryStream(cipherText))
                 {
-                    using (CryptoStream cs = new CryptoStream(ms, des.CreateDecryptor(), CryptoStreamMode.Write))
+                    using (ICryptoTransform decryptor = des.CreateDecryptor(des.Key, des.IV))
                     {
-                        cs.Write(cipherText, 0, cipherText.Length);
-                        cs.FlushFinalBlock();
-                        return Encoding.UTF8.GetString(ms.ToArray());
+                        using (CryptoStream cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                        {
+                            /*
+                            cs.Write(cipherText, 0, cipherText.Length);
+                            cs.FlushFinalBlock();
+                            return Encoding.UTF8.GetString(ms.ToArray());
+                            */
+                            using (StreamReader srDecrypt = new StreamReader(cs, Encoding.UTF8))
+                            {
+                                return srDecrypt.ReadToEnd();
+                            }
+                        }
                     }
                 }
             }
