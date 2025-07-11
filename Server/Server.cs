@@ -398,8 +398,9 @@ namespace Server
 
                 Console.WriteLine("Server zavrsava sa radom");
                 IspisiStatistiku(desVremena, aesVremena);
-                Console.ReadKey();
                 serverSocket.Close();
+                Console.ReadKey();
+                
             }
         }
 
@@ -415,8 +416,17 @@ namespace Server
             {
                 aesProsek += item;
             }
-            desProsek /= desVremena.Count;
-            aesProsek /= aesVremena.Count;
+            if (desVremena.Count != 0)
+            { 
+                desProsek /= desVremena.Count; 
+            }
+     
+
+            if (aesVremena.Count != 0)
+            {
+                aesProsek /= aesVremena.Count;
+            }
+           
             Console.WriteLine($"Prosek vremena za DES: {desProsek}");
             Console.WriteLine($"Prosek vremena za AES: {aesProsek}");
         }
