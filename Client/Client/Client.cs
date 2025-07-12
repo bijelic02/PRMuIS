@@ -8,10 +8,38 @@ namespace Client
 {
     public class Client
     {
+        //TO DO:
+        //ponuditi klijentu da sam unese IPEndPoint
+        //napraviti zastitu da mora da unese 127.0.0.1 i 65000 jer ce to ocekivati i na serveru
         static void Main(string[] args)
         {
             Socket clientSocket;
-            IPEndPoint destEP = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 65000);
+            string destIP;
+            int destPort;
+            IPEndPoint destEP;
+
+            while (true)
+            {
+                Console.Write("Unesite IP adresu servera: ");
+                destIP = Console.ReadLine();
+
+                Console.Write("Unesite port servera: ");
+                string portInput = Console.ReadLine(); 
+
+         
+                if (int.TryParse(portInput, out destPort) && destIP == "127.0.0.1" && destPort == 65000)
+                {
+                    destEP = new IPEndPoint(IPAddress.Parse(destIP), destPort);
+                    Console.WriteLine("Uspesno ste uneli ispravne podatke servera.");
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("Greska: Uneta IP adresa ili port nisu ispravni.");
+                    Console.WriteLine("Molimo unesite '127.0.0.1' za IP adresu i '65000' za port.");
+                    Console.WriteLine("---------------------------------------------------------");
+                }
+            }
 
             Console.WriteLine("Aplikacija je pokrenuta.\n");
             Console.WriteLine("Izaberite koji protokol zelite da koristite (UDP ili TCP): ");

@@ -17,7 +17,8 @@ namespace ClientLauncher
             PokreniKlijente(brojKlijenata);
 
             Console.WriteLine("Svi klijenti su pokrenuti.");
-            Console.ReadLine(); 
+           // Console.ReadLine(); zatvaranje prozora nakon odabira klijenta
+            
         }
 
         static void PokreniKlijente(int brojKlijenata)
