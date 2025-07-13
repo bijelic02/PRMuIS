@@ -7,10 +7,6 @@ namespace Server
 {
     public class Server
     {
-        // TODO: popravi metodu za statistiku
-        // treba na osnovu duzine reci da se izracuna prosek vremena za des i aes
-        // moze i malo ispis da se popravi
-
         static void Main(string[] args)
         {
             List<NacinKomunikacije> komunikacijaLista = new List<NacinKomunikacije>();
@@ -245,7 +241,8 @@ namespace Server
             {
 
                 EndPoint posiljaocEP = new IPEndPoint(IPAddress.Any, 0);
-                while (true)
+                bool kraj = true;
+                while (kraj)
                 {
                     try
                     {
@@ -303,6 +300,14 @@ namespace Server
                                         }
                                         else // klijent vec postoji
                                         {
+                                            if (brBajta == 0)
+                                            {
+                                                Console.WriteLine("Klijent je zavrsio sa radom");
+                                                s.Close();
+                                                komunikacijaLista.Remove(komunikacija);
+                                                continue;
+                                            }
+
                                             string sifrovanaPoruka = Encoding.UTF8.GetString(buffer, 0, brBajta);
                                             string poruka = "";
 
@@ -325,7 +330,7 @@ namespace Server
                                                 {
                                                     Console.WriteLine("Svi klijenti su zavrsili sa radom");
                                                     IspisiStatistiku(desVremena, aesVremena);
-                                                    break;
+                                                    kraj = false;
                                                 }
                                                 break;
                                             }
@@ -360,16 +365,17 @@ namespace Server
                                                 {
                                                     Console.WriteLine("Svi klijenti su zavrsili sa radom");
                                                     IspisiStatistiku(desVremena, aesVremena);
-                                                    break;
+                                                    kraj = false;
                                                 }
                                                 break;
                                             }
+                                            continue;
                                         }
                                     }
                                 }
                                 catch (SocketException ex)
                                 {
-                                    Console.WriteLine($"Greška sa soketom: {ex.Message}");
+                                    Console.WriteLine($"Greska sa soketom: {ex.Message}");
                                     break;
                                 }
                             }
@@ -399,7 +405,7 @@ namespace Server
                 }
 
                 Console.WriteLine("Server zavrsava sa radom");
-                IspisiStatistiku(desVremena, aesVremena);
+                //IspisiStatistiku(desVremena, aesVremena);
                 serverSocket.Close();
                 Console.ReadKey();
                 
@@ -411,44 +417,43 @@ namespace Server
             Console.WriteLine("--- Statistika za DES ---");
             if (desVremena == null || desVremena.Count == 0)
             {
-                Console.WriteLine("Nema podataka za DES prikaz.");
+                Console.WriteLine("Nema podataka za DES algoritam.");
             }
             else
             {
                 var desProseciPoDuzini = desVremena
-                  .GroupBy(item => item.Key) // Grupiši po dužini poruke
+                  .GroupBy(item => item.Key) // grupisi po duzini poruke
                   .Select(group => new
                   {
                       DuzinaPoruke = group.Key,
-                      ProsecnoVreme = group.Average(item => item.Value) // Izračunaj prosek vremena unutar grupe
+                      ProsecnoVreme = group.Average(item => item.Value) // prosek unutar grupe
                   })
-                  .OrderBy(item => item.DuzinaPoruke); // Sortiraj po dužini poruke
+                  .OrderBy(item => item.DuzinaPoruke); // sortiranje po duzini poruke
 
                 foreach (var stavka in desProseciPoDuzini)
                 {
-                    Console.WriteLine($"DES: Dužina poruke: {stavka.DuzinaPoruke}, Prosečno vreme: {stavka.ProsecnoVreme:F6} ms");
+                    Console.WriteLine($"DES: Duzina poruke: {stavka.DuzinaPoruke}, prosecno vreme: {stavka.ProsecnoVreme:F6} ms");
                 }
             }
             Console.WriteLine("\n--- Statistika za AES ---");
             if (aesVremena == null || aesVremena.Count == 0)
             {
-                Console.WriteLine("Nema podataka za AES prikaz.");
+                Console.WriteLine("Nema podataka za AES algoritam.");
             }
             else
             {
-                // Grupiši AES merenja po dužini poruke (ključu) i izračunaj prosek vremena za svaku grupu
                 var aesProseciPoDuzini = aesVremena
-                    .GroupBy(item => item.Key) // Grupiši po dužini poruke
+                    .GroupBy(item => item.Key) // grupisi po duzini poruke
                     .Select(group => new
                     {
                         DuzinaPoruke = group.Key,
-                        ProsecnoVreme = group.Average(item => item.Value) // Izračunaj prosek vremena unutar grupe
+                        ProsecnoVreme = group.Average(item => item.Value) // prosek unutar grupe
                     })
-                    .OrderBy(item => item.DuzinaPoruke); // Sortiraj po dužini poruke
+                    .OrderBy(item => item.DuzinaPoruke); // sortiranje po duzini poruke
 
                 foreach (var stavka in aesProseciPoDuzini)
                 {
-                    Console.WriteLine($"AES: Dužina poruke: {stavka.DuzinaPoruke}, Prosečno vreme: {stavka.ProsecnoVreme:F6} ms");
+                    Console.WriteLine($"AES: Duzina poruke: {stavka.DuzinaPoruke}, prosecno vreme: {stavka.ProsecnoVreme:F6} ms");
                 }
             }
 

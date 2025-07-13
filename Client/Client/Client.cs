@@ -8,7 +8,6 @@ namespace Client
 {
     public class Client
     {
-        //TO DO:
         //ponuditi klijentu da sam unese IPEndPoint
         //napraviti zastitu da mora da unese 127.0.0.1 i 65000 jer ce to ocekivati i na serveru
         static void Main(string[] args)
