@@ -11,8 +11,8 @@ namespace Server
         {
             List<NacinKomunikacije> komunikacijaLista = new List<NacinKomunikacije>();
             Repo repo = new Repo();
-            Dictionary<double, double> desVremena = new Dictionary<double, double>();
-            Dictionary<double, double> aesVremena = new Dictionary<double, double>();
+            Dictionary<int, List<double>> desVremena = new Dictionary<int, List<double>>();
+            Dictionary<int, List<double>> aesVremena = new Dictionary<int, List<double>>();
 
             Socket serverSocket;
             IPEndPoint serverEP = new IPEndPoint(IPAddress.Any, 65000);
@@ -168,7 +168,11 @@ namespace Server
                                                     sw.Start();
                                                     sifrovaniOdgovor = des.Encrypt(odgovor);
                                                     sw.Stop();
-                                                    desVremena.Add(odgovor.Length, sw.Elapsed.TotalMilliseconds);
+                                                    if (!desVremena.ContainsKey(odgovor.Length))
+                                                    {
+                                                        desVremena.Add(odgovor.Length, new List<double>());
+                                                    }
+                                                    desVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds));
                                                 }
                                                 else
                                                 {
@@ -176,7 +180,11 @@ namespace Server
                                                     sw.Start();
                                                     sifrovaniOdgovor = aes.Encrypt(odgovor);
                                                     sw.Stop();
-                                                    aesVremena.Add(odgovor.Length, sw.Elapsed.TotalMilliseconds);
+                                                    if (!aesVremena.ContainsKey(odgovor.Length))
+                                                    {
+                                                        aesVremena.Add(odgovor.Length, new List<double>());
+                                                    }
+                                                    aesVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds));
                                                 }
 
                                                 brBajta = s.Send(Encoding.UTF8.GetBytes(sifrovaniOdgovor));
@@ -346,7 +354,11 @@ namespace Server
                                                 sw.Start();
                                                 sifrovaniOdgovor = des.Encrypt(odgovor);
                                                 sw.Stop();
-                                                desVremena.Add( odgovor.Length, sw.Elapsed.TotalMilliseconds);
+                                                if (!desVremena.ContainsKey(odgovor.Length))
+                                                {
+                                                    desVremena.Add(odgovor.Length, new List<double>());
+                                                }
+                                                desVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds));
                                             }
                                             else
                                             {
@@ -354,7 +366,11 @@ namespace Server
                                                 sw.Start();
                                                 sifrovaniOdgovor = aes.Encrypt(odgovor);
                                                 sw.Stop();
-                                                aesVremena.Add( odgovor.Length, sw.Elapsed.TotalMilliseconds);
+                                                if (!aesVremena.ContainsKey(odgovor.Length))
+                                                {
+                                                    aesVremena.Add(odgovor.Length, new List<double>());
+                                                }
+                                                aesVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds));
                                             }
 
                                             brBajta = s.SendTo(Encoding.UTF8.GetBytes(sifrovaniOdgovor), komunikacija.UticnicaAdresaKlijenta);
@@ -412,7 +428,7 @@ namespace Server
             }
         }
 
-        private static void IspisiStatistiku(Dictionary<double, double> desVremena, Dictionary<double, double> aesVremena)
+        private static void IspisiStatistiku(Dictionary<int, List<double>> desVremena, Dictionary<int, List<double>> aesVremena)
         {
             Console.WriteLine("--- Statistika za DES ---");
             if (desVremena == null || desVremena.Count == 0)
