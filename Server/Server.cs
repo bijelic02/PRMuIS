@@ -172,7 +172,7 @@ namespace Server
                                                     {
                                                         desVremena.Add(odgovor.Length, new List<double>());
                                                     }
-                                                    desVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds));
+                                                    desVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds);
                                                 }
                                                 else
                                                 {
@@ -184,7 +184,7 @@ namespace Server
                                                     {
                                                         aesVremena.Add(odgovor.Length, new List<double>());
                                                     }
-                                                    aesVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds));
+                                                    aesVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds);
                                                 }
 
                                                 brBajta = s.Send(Encoding.UTF8.GetBytes(sifrovaniOdgovor));
@@ -358,7 +358,7 @@ namespace Server
                                                 {
                                                     desVremena.Add(odgovor.Length, new List<double>());
                                                 }
-                                                desVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds));
+                                                desVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds);
                                             }
                                             else
                                             {
@@ -370,7 +370,7 @@ namespace Server
                                                 {
                                                     aesVremena.Add(odgovor.Length, new List<double>());
                                                 }
-                                                aesVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds));
+                                                aesVremena[odgovor.Length].Add(sw.Elapsed.TotalMilliseconds);
                                             }
 
                                             brBajta = s.SendTo(Encoding.UTF8.GetBytes(sifrovaniOdgovor), komunikacija.UticnicaAdresaKlijenta);
@@ -427,7 +427,6 @@ namespace Server
                 
             }
         }
-
         private static void IspisiStatistiku(Dictionary<int, List<double>> desVremena, Dictionary<int, List<double>> aesVremena)
         {
             Console.WriteLine("--- Statistika za DES ---");
@@ -437,20 +436,23 @@ namespace Server
             }
             else
             {
-                var desProseciPoDuzini = desVremena
-                  .GroupBy(item => item.Key) // grupisi po duzini poruke
-                  .Select(group => new
-                  {
-                      DuzinaPoruke = group.Key,
-                      ProsecnoVreme = group.Average(item => item.Value) // prosek unutar grupe
-                  })
-                  .OrderBy(item => item.DuzinaPoruke); // sortiranje po duzini poruke
-
-                foreach (var stavka in desProseciPoDuzini)
+                foreach (var item in desVremena)
                 {
-                    Console.WriteLine($"DES: Duzina poruke: {stavka.DuzinaPoruke}, prosecno vreme: {stavka.ProsecnoVreme:F6} ms");
+                    int duzinaPoruke = item.Key; 
+                    List<double> listaVremena = item.Value; 
+
+                    if (listaVremena != null && listaVremena.Count > 0)
+                    {
+                        double prosecnoVreme = listaVremena.Average(); 
+                        Console.WriteLine($"DES: Dužina poruke: {duzinaPoruke}, prosečno vreme: {prosecnoVreme:F6} ms");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"DES: Dužina poruke: {duzinaPoruke}, nema merenja za prikaz.");
+                    }
                 }
             }
+
             Console.WriteLine("\n--- Statistika za AES ---");
             if (aesVremena == null || aesVremena.Count == 0)
             {
@@ -458,23 +460,25 @@ namespace Server
             }
             else
             {
-                var aesProseciPoDuzini = aesVremena
-                    .GroupBy(item => item.Key) // grupisi po duzini poruke
-                    .Select(group => new
-                    {
-                        DuzinaPoruke = group.Key,
-                        ProsecnoVreme = group.Average(item => item.Value) // prosek unutar grupe
-                    })
-                    .OrderBy(item => item.DuzinaPoruke); // sortiranje po duzini poruke
-
-                foreach (var stavka in aesProseciPoDuzini)
+                foreach (var item in aesVremena)
                 {
-                    Console.WriteLine($"AES: Duzina poruke: {stavka.DuzinaPoruke}, prosecno vreme: {stavka.ProsecnoVreme:F6} ms");
+                    int duzinaPoruke = item.Key; 
+                    List<double> listaVremena = item.Value; 
+
+                    if (listaVremena != null && listaVremena.Count > 0)
+                    {
+                        double prosecnoVreme = listaVremena.Average(); 
+                        Console.WriteLine($"AES: Dužina poruke: {duzinaPoruke}, prosečno vreme: {prosecnoVreme:F6} ms");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"AES: Dužina poruke: {duzinaPoruke}, nema merenja za prikaz.");
+                    }
                 }
             }
-
         }
-       
+
+
     }
     
 }
